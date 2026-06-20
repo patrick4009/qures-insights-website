@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { supabase } from '../lib/supabase'
 
 const AGE_GROUPS = ['13 – 17', '18 – 24', '25 – 34', '35 – 44', '45 – 54', '55 – 64', '65+']
 
@@ -100,9 +101,20 @@ export default function HeroFlow() {
     }, 180)
   }
 
-  function goNext() {
+  async function goNext() {
     const next = getNextStep(step, answers)
     if (next > TOTAL_STEPS - 1) {
+      const { error } = await supabase.from('question_submissions').insert([{
+        email: answers.email,
+        company: answers.company,
+        ages: answers.ages,
+        location: answers.location,
+        question: answers.question,
+        question_type: answers.questionType,
+        options: answers.options.filter(o => o.trim() !== ''),
+        scale: answers.scale,
+      }])
+      if (error) console.error('[QuRes] wizard submission:', error.message)
       setSubmitted(true)
       return
     }
