@@ -1,21 +1,21 @@
-const cards = [
+const cols = [
   {
-    icon: '👤',
+    icon: '◎',
     title: 'Age brackets',
-    desc: 'Narrow to the exact generation that matters for your brief.',
+    desc: 'Narrow to the exact generation that matters for your brief. Mix brackets to span an audience or isolate a single cohort.',
     tags: ['13–17', '18–24', '25–34', '35–44', '45–54', '55–64', '65+'],
   },
   {
-    icon: '📍',
+    icon: '⬡',
     title: 'Location',
-    desc: 'Target by country, city, or radius around a postcode.',
+    desc: 'Target by country, city, or a radius drawn around a postcode. Multi-market briefs run as a single question with segmented results.',
     tags: ['Country', 'City', 'Radius (km)', 'Nationwide', 'Multi-market'],
   },
   {
     icon: '◈',
-    title: 'Interests & topics',
-    desc: 'Reach respondents who have opted into categories relevant to your brand.',
-    tags: ['Fashion', 'Tech', 'Food & drink', 'Finance', 'Health', 'Travel', 'Sport', '+more'],
+    title: 'Interests',
+    desc: 'Reach respondents who opted into topic categories aligned with your category — from Fashion and Tech to Finance and Health.',
+    tags: ['Fashion', 'Tech', 'Food & drink', 'Finance', 'Health', 'Travel', '+more'],
   },
 ]
 
@@ -23,19 +23,17 @@ export default function Targeting() {
   return (
     <section className="section" id="targeting">
       <div className="container">
-        <div className="section-intro">
-          <span className="eyebrow">[ Targeting ]</span>
-          <h2 className="h2">Ask the right people.<br />Every time.</h2>
-          <p className="body-lg">Combine filters to build an audience that matches your real customer — not a generic panel.</p>
-        </div>
-        <div className="targeting-grid">
-          {cards.map(c => (
-            <div key={c.title} className="targeting-card">
-              <span className="targeting-card-icon">{c.icon}</span>
+        <span className="eyebrow">Targeting</span>
+        <h2 className="h2">Ask the right people.<br />Every time.</h2>
+
+        <div className="targeting-cols">
+          {cols.map(c => (
+            <div key={c.title} className="targeting-col">
+              <span className="targeting-col-icon">{c.icon}</span>
               <h3 className="h3">{c.title}</h3>
-              <p style={{ fontSize: 14, color: 'var(--faint)', lineHeight: 1.6 }}>{c.desc}</p>
-              <div className="targeting-tag-list">
-                {c.tags.map(tag => <span key={tag} className="targeting-tag">{tag}</span>)}
+              <p>{c.desc}</p>
+              <div className="tag-cloud">
+                {c.tags.map(t => <span key={t} className="tag-item">{t}</span>)}
               </div>
             </div>
           ))}

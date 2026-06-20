@@ -9,17 +9,17 @@ const stats = [
 
 export default function SocialProof() {
   return (
-    <section className="section" id="proof">
+    <section className="stats-section" id="proof">
       <div className="container">
-        <div className="section-intro">
-          <span className="eyebrow">[ By the numbers ]</span>
+        <div className="stats-header">
+          <span className="eyebrow">By the numbers</span>
           <h2 className="h2">Research that moves<br />at business speed.</h2>
         </div>
-        <div className="stats-grid">
+        <div className="stats-grid-new">
           {stats.map(s => (
-            <div key={s.number} className="stat-cell">
-              <span className="stat-number mono-stat">{s.number}</span>
-              <span className="stat-label" style={{ whiteSpace: 'pre-line' }}>{s.label}</span>
+            <div key={s.number} className="stat-cell-new">
+              <span className="stat-num-new">{s.number}</span>
+              <span className="stat-label-new" style={{ whiteSpace: 'pre-line' }}>{s.label}</span>
             </div>
           ))}
         </div>

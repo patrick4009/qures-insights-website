@@ -15,13 +15,11 @@ export default function Nav() {
       <Logo />
       <ul className="nav-links">
         <li><a href="#how">How it works</a></li>
-        <li><a href="#types">Question types</a></li>
+        <li><a href="#types">Formats</a></li>
         <li><a href="#results">Results</a></li>
         <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#contact" style={{ opacity: 1, fontWeight: 700, color: 'var(--ink)' }}>Request a demo</a></li>
       </ul>
-      <div className="nav-cta">
-        <a href="#contact" className="btn btn-primary btn-sm">Request a demo</a>
-      </div>
     </nav>
   )
 }
