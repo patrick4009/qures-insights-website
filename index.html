@@ -1,16 +1,547 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QuRes Insights — Real answers. Real people. Right now.</title>
-    <meta name="description" content="Fast, incentivised consumer research for brands that can't wait. Target by age, location, and interest. Get results in hours." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QuRes for Business — Ask the world a question</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg:#FBFAF6; --surface:#FFFFFF; --surface-2:#F4F4F2; --ink:#0A0A0A;
+    --faint:#8A8A86; --mute:#5A5A56; --border:#E0E0DB; --line:rgba(10,10,10,.12);
+    --copper:#B06A35; --copper-tint:#F2E4D8;
+    --display:'Space Grotesk', system-ui, sans-serif; --mono:'IBM Plex Mono', ui-monospace, monospace;
+    --m: clamp(16px,3vw,40px); --gap: clamp(10px,1.4vw,20px);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ -webkit-font-smoothing:antialiased; scroll-behavior:smooth; }
+  body{ color:var(--ink); font-family:var(--mono); overflow-x:hidden;
+    background:linear-gradient(125deg, #FFFFFF 0%, #F4E1CF 20%, #FFFFFF 40%, #ECCDB0 60%, #FFFFFF 80%, #F4E1CF 100%);
+    background-size:300% 300%; background-attachment:fixed; animation:flow 12s ease-in-out infinite; }
+  @keyframes flow{ 0%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } 100%{ background-position:0% 50%; } }
+  @media(prefers-reduced-motion:reduce){ body{ animation:none; } }
+  ::selection{ background:var(--ink); color:var(--surface); }
+  a{ color:inherit; text-decoration:none; }
+  .container{ padding-inline:var(--m); }
+  .disp{ font-family:var(--display); font-weight:700; letter-spacing:-.03em; line-height:1; }
+  .label{ font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--faint); text-transform:uppercase; }
+
+  /* loader */
+  #loader{ position:fixed; inset:0; z-index:100; background:var(--ink); color:var(--surface); display:flex; align-items:flex-end; padding:var(--m); transition:opacity .6s, visibility .6s; }
+  #loader.done{ opacity:0; visibility:hidden; }
+  #loader .count{ font-family:var(--mono); font-size:clamp(48px,12vw,130px); font-weight:500; letter-spacing:-.04em; line-height:.85; }
+  #loader .meta{ position:absolute; top:var(--m); left:var(--m); right:var(--m); display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; opacity:.7; }
+
+  /* nav */
+  header{ position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:40; width:min(460px,calc(100vw - 32px)); }
+  .nav-pill{ position:relative; border-radius:10px; overflow:hidden; backdrop-filter:blur(12px); border:1.5px solid var(--copper); background:var(--copper); box-shadow:0 6px 24px rgba(20,20,20,.06); }
+  .nav-bar{ height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; }
+  .logo{ display:flex; align-items:center; gap:3px; font-family:var(--display); font-weight:700; letter-spacing:-.04em; font-size:19px; }
+  .logo .dot{ width:5px; height:5px; border-radius:50%; background:#fff; align-self:flex-end; margin-bottom:5px; }
+  .nav-bar .logo{ color:#fff; }
+  .nav-center{ font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:rgba(255,255,255,.8); transition:opacity .3s; }
+  .nav-bar .burger span{ background:#fff; }
+  .nav-items{ max-height:0; overflow:hidden; background:var(--surface); transition:max-height .45s cubic-bezier(.2,1,.36,1); }
+  .burger{ width:34px; height:34px; display:flex; flex-direction:column; gap:4px; align-items:center; justify-content:center; cursor:pointer; background:none; border:none; }
+  .burger span{ width:17px; height:2px; background:var(--ink); transition:transform .35s, opacity .25s; }
+  header.open .burger span:nth-child(1){ transform:translateY(6px) rotate(45deg); }
+  header.open .burger span:nth-child(2){ opacity:0; }
+  header.open .burger span:nth-child(3){ transform:translateY(-6px) rotate(-45deg); }
+  header.open .nav-items{ max-height:420px; }
+  .hero-copy .cu{ color:var(--copper); }
+  .nav-link{ display:flex; align-items:center; gap:14px; height:50px; padding:0 16px; border-top:1px solid var(--border); }
+  .nav-link .idx{ font-family:var(--mono); font-size:10px; color:var(--faint); }
+  .nav-link .t{ font-family:var(--display); font-weight:500; font-size:16px; letter-spacing:-.02em; }
+  .nav-link .arrow{ margin-left:auto; opacity:0; transform:translateX(-6px); transition:.25s; font-family:var(--mono); font-size:12px; }
+  .nav-link:hover{ background:var(--surface-2); } .nav-link:hover .arrow{ opacity:1; transform:none; }
+  .nav-cta{ padding:12px; border-top:1px solid var(--border); }
+  .nav-cta a{ display:flex; align-items:center; justify-content:center; height:48px; border-radius:7px; background:var(--ink); color:var(--surface); font-family:var(--mono); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+  .nav-blur{ position:fixed; inset:0; z-index:30; background:rgba(20,20,20,.18); backdrop-filter:blur(4px); opacity:0; visibility:hidden; transition:.4s; }
+  .nav-blur.show{ opacity:1; visibility:visible; }
+
+  /* hero */
+  @media(max-width:860px){ .stage{ width:100%; } }
+  .hero{ min-height:100svh; display:flex; flex-direction:column; justify-content:center; padding-top:130px; padding-bottom:90px; }
+  .hero-grid{ display:grid; grid-template-columns:1fr min(42%,460px); gap:clamp(28px,5vw,72px); align-items:center; width:100%; }
+  .stage{ width:100%; max-width:460px; justify-self:end; position:relative; }
+  .hero-copy .label{ display:block; margin-bottom:20px; }
+  .hero-copy h2{ font-family:var(--display); font-weight:700; letter-spacing:-.03em; line-height:1; font-size:clamp(34px,4.4vw,62px); text-wrap:balance; }
+  .hero-copy p{ font-family:var(--mono); font-size:13.5px; line-height:1.6; color:var(--mute); max-width:420px; margin-top:24px; }
+  @media(max-width:860px){ .hero{ display:block; } .hero-grid{ grid-template-columns:1fr; gap:36px; } .hero-copy h2{ font-size:clamp(30px,8vw,48px); } }
+  .stage{ max-width:100%; position:relative; }
+
+  /* builder card */
+  .builder{ background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 18px 50px rgba(20,20,20,.08); height:472px; display:flex; flex-direction:column; }
+  .b-top{ display:flex; align-items:center; justify-content:space-between; padding:15px 20px; border-bottom:1px solid var(--border); }
+  .b-top .t{ font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:-.01em; }
+  .b-steps{ display:flex; gap:4px; }
+  .b-steps i{ width:22px; height:3px; border-radius:99px; background:var(--border); }
+  .b-steps i.on{ background:var(--ink); }
+  .b-body{ padding:22px 26px; flex:1; min-height:0; overflow-y:auto; }
+  .b-body::-webkit-scrollbar{ width:0; }
+  .b-fade{ transition:opacity .28s ease; }
+  .b-fade.out{ opacity:0; }
+  .b-q{ font-family:var(--display); font-weight:600; font-size:18px; letter-spacing:-.02em; margin-bottom:6px; }
+  .b-sub{ font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-bottom:14px; }
+  .pills{ display:flex; gap:7px; flex-wrap:wrap; }
+  .pill{ font-family:var(--mono); font-size:12px; padding:8px 13px; border-radius:99px; border:1px solid var(--border); background:var(--surface); color:var(--ink); cursor:pointer; transition:.15s; }
+  .pill:hover{ border-color:var(--ink); }
+  .pill.on{ background:var(--copper); color:var(--surface); border-color:var(--copper); }
+  .field{ margin-top:14px; } .field.row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .field > label, .field-col > label{ display:block; font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-bottom:7px; }
+  .inp{ width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); font-family:var(--display); font-weight:500; font-size:14px; color:var(--ink); outline:none; }
+  .inp:focus{ border-color:var(--ink); background:var(--surface); }
+  textarea.inp{ resize:none; line-height:1.4; }
+  select.inp{ appearance:none; cursor:pointer; }
+  .opt-row{ display:flex; gap:7px; align-items:center; margin-bottom:7px; }
+  .opt-row .ix{ width:16px; font-family:var(--mono); font-size:11px; color:var(--faint); flex-shrink:0; }
+  .opt-row button{ border:none; background:none; cursor:pointer; color:var(--faint); font-family:var(--mono); font-size:15px; }
+  .addopt{ display:inline-flex; align-items:center; gap:6px; margin-top:4px; padding:7px 12px; border-radius:99px; border:1px dashed var(--border); background:none; cursor:pointer; font-family:var(--mono); font-size:11.5px; color:var(--ink); }
+  .b-foot{ display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-top:1px solid var(--border); background:var(--surface-2); }
+  .btn{ display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 18px; border-radius:99px; border:none; cursor:pointer; font-family:var(--mono); font-size:12px; letter-spacing:.05em; text-transform:uppercase; }
+  .btn.dark{ background:var(--ink); color:var(--surface); } .btn.dark:disabled{ opacity:.35; cursor:default; }
+  .btn.ghost{ background:none; color:var(--ink); border:1px solid var(--border); }
+  .b-hint{ font-family:var(--mono); font-size:10.5px; color:var(--faint); flex:1; text-align:center; }
+
+  /* intro screen */
+  .b-intro{ height:100%; display:flex; flex-direction:column; justify-content:center; padding:4px 26px; }
+  .b-intro .ey{ display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+  .b-intro .ey .pulse{ width:7px; height:7px; border-radius:50%; background:var(--copper); animation:pulse 1.6s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.25} }
+  .b-intro h2{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; line-height:1.12; font-size:clamp(22px,2.6vw,28px); text-wrap:pretty; max-width:100%; }
+  .b-intro .btn{ margin-top:18px; align-self:flex-start; }
+
+  /* success */
+  .b-success{ height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:22px; }
+  .b-success .tick{ width:54px; height:54px; border-radius:50%; background:var(--ink); color:var(--surface); display:flex; align-items:center; justify-content:center; margin-bottom:16px; font-size:23px; }
+  .b-success h4{ font-family:var(--display); font-weight:700; font-size:24px; letter-spacing:-.02em; }
+  .b-success p{ color:var(--mute); font-family:var(--mono); font-size:12px; line-height:1.55; max-width:400px; margin:10px auto 0; }
+  .recap{ display:inline-flex; flex-wrap:wrap; gap:5px; justify-content:center; margin-top:16px; }
+  .recap span{ font-family:var(--mono); font-size:10.5px; background:var(--surface-2); border:1px solid var(--border); padding:5px 10px; border-radius:99px; }
+
+  .intro{ display:none; }
+
+  .stats{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--gap); margin-top:56px; }
+  .stat{ border-top:1px solid var(--line); padding-top:16px; }
+  .stat .n{ font-family:var(--display); font-weight:700; font-size:clamp(28px,4vw,50px); letter-spacing:-.03em; }
+  .stat .l{ font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin-top:6px; }
+  @media(max-width:680px){ .stats{ grid-template-columns:repeat(2,1fr); row-gap:32px; } }
+
+  .work{ padding-top:clamp(90px,14vh,170px); }
+  .work-head{ display:grid; grid-template-columns:repeat(12,1fr); gap:var(--gap); margin-bottom:44px; }
+  .work-head h2{ grid-column:1 / span 7; font-family:var(--display); font-weight:500; font-size:clamp(22px,3vw,38px); letter-spacing:-.02em; line-height:1.06; color:var(--copper); }
+  .work-head .r{ grid-column:9 / span 4; align-self:end; text-align:right; }
+  .step{ border-top:1px solid var(--line); padding:26px 0; display:grid; grid-template-columns:repeat(12,1fr); gap:var(--gap); align-items:start; }
+  .step:last-child{ border-bottom:1px solid var(--line); }
+  .step .ix{ grid-column:1 / span 1; font-family:var(--mono); font-size:12px; color:var(--faint); }
+  .step .name{ grid-column:2 / span 4; font-family:var(--display); font-weight:600; font-size:clamp(20px,2.2vw,30px); letter-spacing:-.02em; }
+  .step .desc{ grid-column:7 / span 5; font-family:var(--mono); font-size:13px; line-height:1.55; color:var(--mute); }
+  @media(max-width:860px){ .step{ grid-template-columns:1fr; gap:10px; } .step .ix,.step .name,.step .desc{ grid-column:1 / -1; } .work-head h2{ grid-column:1/-1; } .work-head .r{ display:none; } }
+
+  .marquee{ border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-top:120px; overflow:hidden; white-space:nowrap; padding:22px 0; }
+  .marquee .track{ display:inline-block; animation:scroll 30s linear infinite; }
+  .marquee span{ font-family:var(--display); font-weight:700; letter-spacing:-.03em; font-size:clamp(24px,4vw,50px); padding:0 20px; }
+  .marquee span i{ color:var(--copper); font-style:normal; }
+  @keyframes scroll{ to{ transform:translateX(-50%); } }
+
+  .rowsec{ padding-top:clamp(64px,10vh,110px); }
+  .foot{ padding:clamp(90px,14vh,160px) 0 150px; }
+  .foot h3{ font-size:clamp(34px,7vw,92px); margin-top:18px; }
+  .foot .btn{ height:54px; margin-top:32px; }
+
+  .statusbar{ position:fixed; left:0; right:0; bottom:0; z-index:20; padding:0 var(--m) 16px; pointer-events:none; background:var(--surface); border-top:1px solid var(--border); }
+  .statusbar .inner{ position:relative; display:grid; grid-template-columns:repeat(12,1fr); gap:var(--gap); align-items:center; padding-top:12px; }
+  .statusbar .line{ position:absolute; top:0; left:0; right:0; height:1px; background:var(--line); }
+  .statusbar .s{ font-family:var(--mono); font-size:11px; letter-spacing:.04em; text-transform:uppercase; }
+  .statusbar .c1{ grid-column:1 / span 3; } .statusbar .c2{ grid-column:4 / span 2; }
+  .statusbar .clock{ grid-column:6 / span 3; color:var(--mute); } .statusbar .foll{ grid-column:9; text-align:right; color:var(--faint); }
+  .statusbar a{ pointer-events:auto; } .statusbar .c10{ grid-column:10; } .statusbar .c11{ grid-column:11; }
+  .statusbar .lang{ grid-column:12; justify-self:end; display:flex; gap:6px; pointer-events:auto; }
+  .statusbar .lang a{ opacity:.4; } .statusbar .lang a.on{ opacity:1; }
+  .ball{ display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--copper); margin:0 3px 2px; }
+  @media(max-width:860px){ .statusbar .clock,.statusbar .foll,.statusbar .c10,.statusbar .c11{ display:none; } .statusbar .c1{ grid-column:1 / span 6; } .statusbar .c2{ grid-column:7 / span 4; } .statusbar .lang{ grid-column:11 / span 2; } }
+
+  .reveal{ opacity:0; transform:translateY(14px); transition:opacity .8s cubic-bezier(.2,1,.36,1), transform .8s cubic-bezier(.2,1,.36,1); }
+  .reveal.in{ opacity:1; transform:none; }
+
+  .copper-card{ border:1.5px solid var(--copper); border-radius:18px; padding:clamp(18px,2.6vw,32px); background:var(--surface); }
+  .copper-card .step:first-child{ border-top:none; padding-top:6px; }
+  .copper-card .step:last-child{ border-bottom:none; padding-bottom:6px; }
+
+  .ctable{ border:1.5px solid var(--copper); border-radius:18px; padding:6px clamp(16px,2.4vw,28px); background:var(--surface); }
+  .ctable .ct-row:last-child{ border-bottom:none; }
+  .ct-row{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:var(--gap); padding:15px 0; border-bottom:1px solid var(--line); align-items:center; }
+  .ct-c{ font-family:var(--mono); font-size:13px; color:var(--mute); }
+  .ct-feat{ font-family:var(--display); font-weight:600; font-size:14.5px; color:var(--ink); letter-spacing:-.01em; }
+  .ct-head .ct-c{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); }
+  .ct-us{ color:var(--copper) !important; font-weight:600; }
+  .ct-head .ct-us{ color:var(--copper) !important; }
+  .ct-row .ct-us{ position:relative; }
+  .ct-row:not(.ct-head) .ct-us{ box-shadow:inset 2px 0 0 var(--copper); padding-left:12px; }
+  @media(max-width:760px){ .ct-row{ grid-template-columns:1fr; gap:4px; padding:16px 0; } .ct-head{ display:none; } .ct-feat{ margin-bottom:4px; } .ct-c::before{ content:attr(data-l); } }
+
+  .faq{ border-top:1px solid var(--line); }
+  .faq details{ border-bottom:1px solid var(--line); }
+  .faq summary{ list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:20px 0; font-family:var(--display); font-weight:500; font-size:clamp(16px,1.9vw,21px); letter-spacing:-.02em; color:var(--ink); }
+  .faq summary::-webkit-details-marker{ display:none; }
+  .faq .pm{ font-family:var(--mono); font-size:20px; color:var(--faint); transition:transform .25s; flex-shrink:0; }
+  .faq details[open] .pm{ transform:rotate(45deg); }
+  .faq p{ font-family:var(--mono); font-size:13px; line-height:1.65; color:var(--mute); max-width:660px; padding:0 0 22px; }
+
+  .cov-grid{ display:grid; grid-template-columns:1.3fr 1fr; gap:clamp(24px,4vw,56px); align-items:center; border-top:1px solid var(--line); padding-top:36px; }
+  .cov-map{ position:relative; width:100%; aspect-ratio:1.7/1; border-radius:16px; overflow:hidden; background:var(--surface); border:1px solid var(--border); }
+  .cov-list{ display:flex; flex-direction:column; }
+  .cov-row{ display:flex; align-items:baseline; justify-content:space-between; gap:14px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .cov-row .cc{ font-family:var(--display); font-weight:600; font-size:15px; color:var(--ink); letter-spacing:-.01em; }
+  .cov-row .cn{ font-family:var(--mono); font-size:12px; color:var(--faint); white-space:nowrap; }
+  .cov-note{ font-family:var(--mono); font-size:12px; line-height:1.6; color:var(--mute); margin-top:16px; }
+  @media(max-width:760px){ .cov-grid{ grid-template-columns:1fr; } }
+
+  .contact-fab{ position:fixed; right:20px; bottom:60px; z-index:45; display:inline-flex; align-items:center; gap:8px; height:46px; padding:0 18px; border-radius:99px; background:var(--ink); color:var(--surface); font-family:var(--mono); font-size:12px; letter-spacing:.05em; text-transform:uppercase; box-shadow:0 8px 26px rgba(20,20,20,.22); transition:transform .2s; }
+  .contact-fab:hover{ transform:translateY(-2px); }
+  .contact-fab .d{ width:7px; height:7px; border-radius:50%; background:var(--copper); animation:pulse 1.6s infinite; }
+  .btn.dark:hover{ background:var(--copper); }
+  @media(max-width:560px){ .contact-fab{ right:14px; bottom:54px; height:42px; padding:0 14px; font-size:11px; } }
+</style>
+</head>
+<body>
+
+  <div id="loader">
+    <div class="meta"><span>QuRes®</span><span>Loading, research console</span></div>
+    <div class="count"><span id="pct">0</span></div>
+  </div>
+
+  <header id="header">
+    <div class="nav-pill">
+      <div class="nav-bar">
+        <a href="index.html" class="logo">QuRes<span class="dot"></span></a>
+        <span class="nav-center" id="navMsg">For business</span>
+        <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+      </div>
+      <nav class="nav-items">
+        <a class="nav-link" href="pages/how-it-works.html"><span class="idx">01</span><span class="t">How it works</span><span class="arrow">↗</span></a>
+        <a class="nav-link" href="pages/pricing.html"><span class="idx">02</span><span class="t">Pricing</span><span class="arrow">↗</span></a>
+        <a class="nav-link" href="pages/about.html"><span class="idx">03</span><span class="t">About</span><span class="arrow">↗</span></a>
+        <a class="nav-link" href="pages/contact.html"><span class="idx">04</span><span class="t">Contact</span><span class="arrow">↗</span></a>
+        <div class="nav-cta"><a href="mailto:hello@qures-insights.com" id="navAsk">Contact us</a></div>
+      </nav>
+    </div>
+  </header>
+  <div class="nav-blur" id="navBlur"></div>
+
+  <main class="container">
+
+    <section class="hero" id="builder">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <span class="label">[ QuRes for Business ]</span>
+          <h2>Real <span class="cu">answers</span> from real people, in <span class="cu">hours</span>, not weeks.</h2>
+          <p>Send a question to a targeted, opted-in audience and get back clean, anonymous insight. No panels to chase, no spreadsheets to wrangle.</p>
+        </div>
+        <div class="stage">
+          <div class="builder">
+            <div class="b-top" id="bTop">
+              <div class="t" id="bTitle">Ask a question</div>
+              <div class="b-steps" id="bSteps"></div>
+            </div>
+            <div class="b-body" id="bBody"><div class="b-fade" id="bFade"></div></div>
+            <div class="b-foot" id="bFoot" style="display:none">
+              <button class="btn ghost" id="bBack" style="visibility:hidden">Back</button>
+              <span class="b-hint" id="bHint"></span>
+              <button class="btn dark" id="bNext">Next →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat reveal"><div class="n">10k+</div><div class="l">Active members</div></div>
+        <div class="stat reveal"><div class="n">~48h</div><div class="l">Median time to result</div></div>
+        <div class="stat reveal"><div class="n">10</div><div class="l">Answer formats</div></div>
+        <div class="stat reveal"><div class="n">100%</div><div class="l">Anonymous &amp; GDPR</div></div>
+      </div>
+    </section>
+
+    <section class="work" id="how">
+      <div class="work-head">
+        <h2 class="reveal">From a question in your head to a report on your desk. Here's the whole loop.</h2>
+        <div class="r reveal"><span class="label">[ How it works ]</span></div>
+      </div>
+      <div class="copper-card">
+        <div class="step reveal"><div class="ix">01</div><div class="name">Target</div><div class="desc">Choose who answers, age group, location down to the city, topics and interests. We match an anonymous, opted-in audience.</div></div>
+        <div class="step reveal"><div class="ix">02</div><div class="name">Ask</div><div class="desc">Write your question and pick from ten answer formats, multiple choice, scales, ranking, open text and more. Set the reward.</div></div>
+        <div class="step reveal"><div class="ix">03</div><div class="name">Collect</div><div class="desc">Members answer in seconds inside the QuRes app. Responses stream back live, with answer-time and drop-off tracked per question.</div></div>
+        <div class="step reveal"><div class="ix">04</div><div class="name">Report</div><div class="desc">Get distributions, segment breakdowns and a benchmarked Insight Score, exported as a branded PDF, ready to share.</div></div>
+      </div>
+    </section>
+
+    <section class="rowsec compare" id="compare">
+      <div class="work-head">
+        <h2 class="reveal">Why teams pick QuRes over a traditional survey.</h2>
+        <div class="r reveal"><span class="label">[ The difference ]</span></div>
+      </div>
+      <div class="ctable reveal">
+        <div class="ct-row ct-head">
+          <div class="ct-c ct-feat">&nbsp;</div>
+          <div class="ct-c ct-us">QuRes</div>
+          <div class="ct-c">Survey tools</div>
+          <div class="ct-c">Research agency</div>
+        </div>
+        <div class="ct-row"><div class="ct-c ct-feat">Time to result</div><div class="ct-c ct-us">~48 hours</div><div class="ct-c">2-6 weeks (you recruit)</div><div class="ct-c">2–6 months</div></div>
+        <div class="ct-row"><div class="ct-c ct-feat">Finds the audience</div><div class="ct-c ct-us">Built-in, opted-in</div><div class="ct-c">You bring your own</div><div class="ct-c">Yes, slow + costly</div></div>
+        <div class="ct-row"><div class="ct-c ct-feat">Real, engaged people</div><div class="ct-c ct-us">Rewarded members</div><div class="ct-c">Often pro panellists</div><div class="ct-c">Recruited panel</div></div>
+        <div class="ct-row"><div class="ct-c ct-feat">Anonymous &amp; GDPR</div><div class="ct-c ct-us">By design</div><div class="ct-c">Depends on setup</div><div class="ct-c">Contractual</div></div>
+        <div class="ct-row"><div class="ct-c ct-feat">Location targeting</div><div class="ct-c ct-us">Country → city → radius</div><div class="ct-c">Basic</div><div class="ct-c">Custom</div></div>
+        <div class="ct-row"><div class="ct-c ct-feat">Output</div><div class="ct-c ct-us">Benchmarked PDF + score</div><div class="ct-c">Raw CSV</div><div class="ct-c">Slide deck</div></div>
+        <div class="ct-row"><div class="ct-c ct-feat">Typical cost</div><div class="ct-c ct-us">Per response</div><div class="ct-c">Seat licence</div><div class="ct-c">£££ project fee</div></div>
+      </div>
+    </section>
+
+    <section class="rowsec" id="faq">
+      <div class="work-head">
+        <h2 class="reveal">Questions, answered. QuRes.</h2>
+        <div class="r reveal"><span class="label">[ FAQ ]</span></div>
+      </div>
+      <div class="faq">
+        <details class="reveal"><summary>How fast do I get results?<span class="pm">+</span></summary><p>Most questions reach a usable, benchmarked result in around 48 hours. Larger or tightly-targeted audiences can take a little longer; you watch responses stream in live.</p></details>
+        <details class="reveal"><summary>Who actually answers?<span class="pm">+</span></summary><p>Real, opted-in members of the QuRes app who earn points for answering. They're engaged everyday people, matched to your targeting, not professional survey-takers.</p></details>
+        <details class="reveal"><summary>Is it anonymous and GDPR-compliant?<span class="pm">+</span></summary><p>Yes, by design. You only ever see grouped trends and percentages. A response is never tied to a name, and members can export or delete their data at any time.</p></details>
+        <details class="reveal"><summary>How precisely can I target?<span class="pm">+</span></summary><p>Age group, topics and interests, and location down to a country, its cities, or a radius around a postcode. Choose one country and you can target a mileage radius.</p></details>
+        <details class="reveal"><summary>What answer formats can I use?<span class="pm">+</span></summary><p>All ten: multiple choice, yes/no, 0–10 scale, agree-to-disagree, dropdown, ranking, brand and product comparison, short text and open feedback.</p></details>
+        <details class="reveal"><summary>What do I get at the end?<span class="pm">+</span></summary><p>A branded PDF report with distributions, segment breakdowns by age and region, a per-location response heatmap, a benchmarked QuRes Insight Score and editable recommendations.</p></details>
+        <details class="reveal"><summary>How much does it cost?<span class="pm">+</span></summary><p>It depends on your audience, sample size and cadence. There's no public price list, every brief is different. <a href="pages/pricing.html" style="color:var(--ink);text-decoration:underline">See pricing</a> or <a href="pages/contact.html" style="color:var(--ink);text-decoration:underline">book a demo</a>.</p></details>
+      </div>
+    </section>
+
+    <div class="marquee">
+      <div class="track">
+        <span>Multiple choice <i>✲</i> Yes / No <i>✲</i> 0–10 scale <i>✲</i> Ranking <i>✲</i> Open text <i>✲</i> </span>
+        <span>Multiple choice <i>✲</i> Yes / No <i>✲</i> 0–10 scale <i>✲</i> Ranking <i>✲</i> Open text <i>✲</i> </span>
+      </div>
+    </div>
+
+    <section class="rowsec coverage" id="coverage">
+      <div class="work-head">
+        <h2 class="reveal">Where you can reach people.</h2>
+        <div class="r reveal"><span class="label">[ Coverage ]</span></div>
+      </div>
+      <div class="cov-grid">
+        <div class="cov-map reveal" id="covMap"></div>
+        <div class="cov-list reveal">
+          <div class="cov-row"><span class="cc">United Kingdom</span><span class="cn">12 cities · ~6,400</span></div>
+          <div class="cov-row"><span class="cc">United States</span><span class="cn">12 cities · ~9,800</span></div>
+          <div class="cov-row"><span class="cc">Netherlands</span><span class="cn">5 cities · ~2,100</span></div>
+          <div class="cov-row"><span class="cc">Germany</span><span class="cn">7 cities · ~3,300</span></div>
+          <div class="cov-row"><span class="cc">France</span><span class="cn">8 cities · ~2,900</span></div>
+          <div class="cov-row"><span class="cc">Spain</span><span class="cn">6 cities · ~1,800</span></div>
+          <div class="cov-row"><span class="cc">Ireland</span><span class="cn">5 cities · ~900</span></div>
+          <div class="cov-row"><span class="cc">Australia</span><span class="cn">6 cities · ~1,500</span></div>
+          <div class="cov-note">Targeting goes down to city level, or a radius around a zip/post code. New markets added regularly, ask us about yours.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="foot" id="contact">
+      <span class="label">[ Ask the world ]</span>
+      <h3 class="disp reveal">What do you<br>want to know?</h3>
+      <a class="btn dark" href="#builder" id="footAsk">Build a question →</a>
+    </section>
+
+    <a class="contact-fab" href="pages/contact.html"><span class="d"></span>Contact us</a>
+  </main>
+
+  <div class="statusbar">
+    <div class="inner">
+      <div class="line"></div>
+      <span class="s c1">Research, on tap</span>
+      <span class="s foll">Follow us</span>
+      <a class="s c10" href="#" target="_blank" rel="noopener">Instagram</a>
+      <a class="s c11" href="#" target="_blank" rel="noopener">LinkedIn</a>
+      <div class="lang"><a href="#" class="on">EN</a></div>
+    </div>
+  </div>
+
+<script>
+  // ── Supabase ──
+  const sbClient = supabase.createClient(
+    'https://oadcdwkwzllvgjpuqvtm.supabase.co',
+    'sb_publishable_BM7CqjG_I1uwc6Ooe7AwSw_qhN7W83g'
+  );
+
+  // ── data ──
+  const AGES=['16–17','18–24','25–34','35–44','45–54','55–64','65+'];
+  const LOCS=['Worldwide','United Kingdom','United States','Netherlands','Germany','France','Spain','Ireland','Australia','Canada'];
+  const ATYPES=[
+    {id:'multiple_choice',name:'Multiple Choice',opt:true},
+    {id:'yes_no',name:'Yes / No',opt:false},
+    {id:'rating',name:'0–10 Scale',opt:false},
+    {id:'likert',name:'Agree → Disagree',opt:false},
+    {id:'dropdown',name:'Dropdown',opt:true},
+    {id:'ranking',name:'Ranking',opt:true},
+    {id:'brand_comparison',name:'Brand Comparison',opt:true,pair:true},
+    {id:'product_preference',name:'Product Preference',opt:true,pair:true},
+    {id:'short_text',name:'Short Text',opt:false},
+    {id:'open_text',name:'Open Feedback',opt:false},
+  ];
+  const state={ step:0, ages:['25–34','35–44'], country:'United Kingdom', city:'', question:'', type:'', options:['',''], firstName:'', lastName:'', email:'', company:'' };
+  const STEPS=['Audience','Question','Format','Your details'];
+  const atype=()=>ATYPES.find(t=>t.id===state.type);
+  const needsOpt=()=>!!atype()?.opt;
+  const isPair=()=>!!atype()?.pair;
+
+  const fade=document.getElementById('bFade'), bSteps=document.getElementById('bSteps'),
+        bBack=document.getElementById('bBack'), bNext=document.getElementById('bNext'), bHint=document.getElementById('bHint'),
+        bTitle=document.getElementById('bTitle');
+
+  function renderSteps(){ bSteps.innerHTML=STEPS.map((_,i)=>`<i class="${i<=state.step?'on':''}"></i>`).join(''); }
+
+  function body(){
+    if(state.step===0){
+      return `<div class="b-q">Who do you want to hear from?</div><div class="b-sub">Age groups · pick any</div>
+        <div class="pills" id="agePills">${AGES.map(a=>`<button class="pill ${state.ages.includes(a)?'on':''}" data-a="${a}">${a}</button>`).join('')}</div>
+        <div class="field"><label>Location</label><select class="inp" id="loc">${LOCS.map(l=>`<option ${l===state.country?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="field"><label>City or area (optional)</label><input class="inp" id="city" placeholder="e.g. London" value="${state.city}"></div>`;
+    }
+    if(state.step===1){
+      return `<div class="b-q">What do you want to ask?</div><div class="b-sub">Keep it to one clear question</div>
+        <div class="field" style="margin-top:0"><label>Your question</label><textarea class="inp" id="q" rows="4" placeholder="e.g. Which of these names feels most premium?">${state.question}</textarea></div>`;
+    }
+    if(state.step===2){
+      return `<div class="b-q">How should they answer?</div><div class="b-sub">Answer format · all 10 available</div>
+        <div class="pills" id="typePills">${ATYPES.map(t=>`<button class="pill ${state.type===t.id?'on':''}" data-t="${t.id}">${t.name}</button>`).join('')}</div>
+        <div id="optWrap"></div>`;
+    }
+    return `<div class="b-q">Where should we send your report?</div><div class="b-sub">We'll email a sample report on your question</div>
+      <div class="field row" style="margin-top:0"><div class="field-col"><label>First name</label><input class="inp" id="fn" placeholder="Alex" value="${state.firstName}"></div>
+      <div class="field-col"><label>Last name</label><input class="inp" id="ln" placeholder="Morgan" value="${state.lastName}"></div></div>
+      <div class="field"><label>Work email</label><input class="inp" id="email" type="email" placeholder="you@company.com" value="${state.email}"></div>
+      <div class="field"><label>Company you work for or represent</label><input class="inp" id="company" placeholder="Company name" value="${state.company}"></div>`;
+  }
+
+  function renderOptions(){
+    const wrap=document.getElementById('optWrap'); if(!wrap) return;
+    if(!needsOpt()){ wrap.innerHTML=''; return; }
+    const isRank=state.type==='ranking', pair=isPair();
+    if(pair && state.options.length!==2) state.options=[state.options[0]||'',state.options[1]||''];
+    wrap.innerHTML=`<div class="field"><label>${pair?'The two choices':isRank?'Items to rank':'Answer options'}</label>
+      ${state.options.map((o,i)=>`<div class="opt-row"><span class="ix">${isRank?(i+1):String.fromCharCode(65+i)}</span>
+        <input class="inp" data-oi="${i}" placeholder="${pair?(i===0?'First choice':'Second choice'):'Option '+(i+1)}" value="${(o||'').replace(/"/g,'&quot;')}">
+        ${(!pair && state.options.length>2)?`<button data-rm="${i}">✕</button>`:''}</div>`).join('')}
+      ${(!pair && state.options.length<6)?`<button class="addopt" id="addOpt">+ Add option</button>`:''}</div>`;
+    wrap.querySelectorAll('input[data-oi]').forEach(inp=>inp.addEventListener('input',e=>{ state.options[+e.target.dataset.oi]=e.target.value; hint(); }));
+    wrap.querySelectorAll('button[data-rm]').forEach(b=>b.addEventListener('click',()=>{ state.options.splice(+b.dataset.rm,1); renderOptions(); hint(); }));
+    const add=document.getElementById('addOpt'); if(add) add.addEventListener('click',()=>{ state.options.push(''); renderOptions(); hint(); });
+  }
+
+  function wire(){
+    document.querySelectorAll('#agePills .pill').forEach(p=>p.addEventListener('click',()=>{ const a=p.dataset.a; state.ages.includes(a)?state.ages=state.ages.filter(x=>x!==a):state.ages.push(a); p.classList.toggle('on'); hint(); }));
+    const loc=document.getElementById('loc'); if(loc) loc.onchange=e=>state.country=e.target.value;
+    const city=document.getElementById('city'); if(city) city.oninput=e=>state.city=e.target.value;
+    const q=document.getElementById('q'); if(q) q.oninput=e=>{ state.question=e.target.value; hint(); };
+    document.querySelectorAll('#typePills .pill').forEach(p=>p.addEventListener('click',()=>{
+      state.type=p.dataset.t; document.querySelectorAll('#typePills .pill').forEach(x=>x.classList.toggle('on',x.dataset.t===state.type));
+      if(needsOpt() && state.options.filter(Boolean).length<2 && !isPair()) state.options=['',''];
+      renderOptions(); hint();
+    }));
+    ['fn','ln','email','company'].forEach(id=>{ const el=document.getElementById(id); if(el) el.oninput=e=>{ state[{fn:'firstName',ln:'lastName',email:'email',company:'company'}[id]]=e.target.value; hint(); }; });
+    if(state.step===2) renderOptions();
+  }
+
+  function valid(){
+    if(state.step===0) return state.ages.length>0;
+    if(state.step===1) return state.question.trim().length>4;
+    if(state.step===2) return !!state.type && (!needsOpt() || state.options.filter(o=>o.trim()).length>=2);
+    return /.+@.+\..+/.test(state.email) && state.company.trim().length>1 && state.firstName.trim().length>0;
+  }
+  function hint(){
+    bNext.disabled=!valid();
+    const hs=['Select at least one age group','A clear question helps members answer','Pick a format'+(needsOpt()?' · add at least 2 options':''),'First name, work email & company'];
+    bHint.textContent = valid()?'':hs[state.step];
+  }
+
+  function render(){
+    renderSteps();
+    bBack.style.visibility=state.step>0?'visible':'hidden';
+    bNext.textContent=state.step===STEPS.length-1?'Get my report →':'Next →';
+    fade.classList.add('out');
+    setTimeout(()=>{ fade.innerHTML=body(); wire(); hint(); fade.classList.remove('out'); },200);
+  }
+
+  function success(){
+    const t=atype(), loc=state.city?`${state.city}, ${state.country}`:state.country;
+
+    // ── persist to Supabase ──
+    sbClient.from('question_submissions').insert([{
+      email: state.email,
+      company: state.company,
+      ages: state.ages,
+      location: loc,
+      question: state.question,
+      question_type: state.type,
+      options: state.options.filter(Boolean),
+      scale: '',
+    }]).then(({error})=>{ if(error) console.warn('[QuRes] lead insert:', error.message); });
+
+    document.getElementById('bFoot').style.display='none'; bSteps.innerHTML=''; bTitle.textContent='Question received';
+    fade.classList.add('out');
+    setTimeout(()=>{
+      fade.parentElement.style.height='auto';
+      fade.outerHTML=`<div class="b-fade" id="bFade"><div class="b-success">
+        <div class="tick">✓</div>
+        <h4>You're on the list${state.firstName?`, ${state.firstName}`:''}.</h4>
+        <p>Thanks, we've logged your question. We'll send a sample report on it to <b style="color:var(--ink)">${state.email}</b> once it's run with a matching audience.</p>
+        <div class="recap"><span>${t?t.name:''}</span><span>${state.ages.join(' · ')}</span><span>${loc}</span></div>
+        <button class="btn ghost" id="readMore" style="margin-top:18px">Read more ↓</button>
+      </div></div>`;
+      requestAnimationFrame(()=>{ const f=document.getElementById('bFade'); f.classList.add('out'); requestAnimationFrame(()=>f.classList.remove('out')); });
+      document.getElementById('readMore').onclick=()=>document.getElementById('compare').scrollIntoView({behavior:'smooth'});
+    },260);
+  }
+
+  bNext.onclick=()=>{ if(!state._open){ openBuilder(); return; } if(!valid())return; if(state.step<STEPS.length-1){ state.step++; render(); } else success(); };
+  bBack.onclick=()=>{ if(state.step>0){ state.step--; render(); } };
+
+  function introScreen(){
+    document.getElementById('bFoot').style.display='flex';
+    bSteps.innerHTML=''; bTitle.textContent='Ask a question';
+    bBack.style.visibility='hidden'; bHint.textContent='';
+    bNext.disabled=false; bNext.textContent='Ask a question →';
+    fade.innerHTML=`<div class="b-intro"><div class="ey"><span class="pulse"></span><span class="label">QuRes for Business</span></div>
+      <h2>What if you could ask questions to everyday people, faster and more accurate than today's survey methods?</h2></div>`;
+  }
+  function openBuilder(){
+    if(state._open) return; state._open=true;
+    bTitle.textContent='Build a question';
+    fade.classList.add('out');
+    setTimeout(()=>{ state.step=0; render(); },200);
+  }
+  document.getElementById('footAsk').addEventListener('click',()=>setTimeout(openBuilder,400));
+  introScreen();
+
+  // chrome
+  const loader=document.getElementById('loader'), pct=document.getElementById('pct');
+  let n=0; const li=setInterval(()=>{ n+=Math.random()*16; if(n>=100){ n=100; clearInterval(li); setTimeout(()=>{ loader.classList.add('done'); kick(); },350);} pct.textContent=Math.floor(n); },85);
+  const header=document.getElementById('header'), navBlur=document.getElementById('navBlur');
+  document.getElementById('burger').onclick=()=>{ header.classList.toggle('open'); navBlur.classList.toggle('show',header.classList.contains('open')); };
+  navBlur.onclick=()=>{ header.classList.remove('open'); navBlur.classList.remove('show'); };
+  document.querySelectorAll('.nav-link,.nav-cta a').forEach(a=>a.addEventListener('click',()=>{ header.classList.remove('open'); navBlur.classList.remove('show'); }));
+  const MSGS=['For business','Ask the world','Answers in hours','Research, on tap'];
+  let mi=0; setInterval(()=>{ mi=(mi+1)%MSGS.length; const el=document.getElementById('navMsg'); el.style.opacity=0; setTimeout(()=>{ el.textContent=MSGS[mi]; el.style.opacity=1; },300); },3400);
+function kick(){ const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} }),{threshold:.14}); document.querySelectorAll('.reveal').forEach(el=>io.observe(el)); covMap(); }
+  function covMap(){
+    var el=document.getElementById('covMap'); if(!el) return;
+    var LAND=[[12,14,30,30],[13,28,24,36],[10,16,20,24],[25,34,33,50],[44,13,55,26],[46,27,58,48],[55,12,82,33],[60,30,74,38],[78,40,90,49]];
+    function inLand(x,y){ for(var i=0;i<LAND.length;i++){var b=LAND[i]; if(x>=b[0]&&x<=b[2]&&y>=b[1]&&y<=b[3])return true;} return false; }
+    var dots='';
+    for(var gx=4;gx<96;gx+=2.4) for(var gy=8;gy<54;gy+=2.4){ if(inLand(gx,gy)) dots+='<circle cx="'+gx+'" cy="'+gy+'" r="0.45" fill="rgba(0,0,0,0.28)"/>'; }
+    var PINS=[['UK',47,17],['US',20,24],['NL',49,16],['DE',52,18],['FR',48,21],['ES',45,24],['IE',44,17],['AU',83,44]];
+    var pins='';
+    PINS.forEach(function(p){ pins+='<g><circle cx="'+p[1]+'" cy="'+p[2]+'" r="1.5" fill="#B06A35"/><circle cx="'+p[1]+'" cy="'+p[2]+'" r="3" fill="none" stroke="#B06A35" stroke-width="0.4" opacity="0.5"/></g>'; });
+    el.innerHTML='<svg viewBox="0 0 100 55" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%">'+dots+pins+'</svg>';
+  }
+</script>
+</body>
 </html>
