@@ -86,7 +86,7 @@
             </div>
           </div>
           <button class="btn dark" id="bkSend" style="width:100%; justify-content:center; margin-top:6px" disabled>Book my demo →</button>
-          <p style="font-family:var(--mono); font-size:11px; color:var(--faint); text-align:center; margin-top:12px; line-height:1.5">Prefer email? <a href="mailto:hello@qures-insights.com" style="color:var(--ink)">hello@qures-insights.com</a></p>
+          <p style="font-family:var(--mono); font-size:11px; color:var(--faint); text-align:center; margin-top:12px; line-height:1.5">Prefer email? <a href="mailto:admin@quresinsights.com" style="color:var(--ink)">admin@quresinsights.com</a></p>
         </div>
       </div>
     </section>
@@ -112,7 +112,7 @@
     document.getElementById('bkSend').addEventListener('click',function(){
       if(!ok())return;
       var fn=val('fn'), em=val('email');
-      sbClient.from('contact_submissions').insert([{
+      sbClient.from('website_contact_submission').insert([{
         name: val('fn') + (val('ln') ? ' ' + val('ln') : ''),
         email: em,
         company: val('company'),

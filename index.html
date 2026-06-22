@@ -29,11 +29,6 @@
   .disp{ font-family:var(--display); font-weight:700; letter-spacing:-.03em; line-height:1; }
   .label{ font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--faint); text-transform:uppercase; }
 
-  /* loader */
-  #loader{ position:fixed; inset:0; z-index:100; background:var(--ink); color:var(--surface); display:flex; align-items:flex-end; padding:var(--m); transition:opacity .6s, visibility .6s; }
-  #loader.done{ opacity:0; visibility:hidden; }
-  #loader .count{ font-family:var(--mono); font-size:clamp(48px,12vw,130px); font-weight:500; letter-spacing:-.04em; line-height:.85; }
-  #loader .meta{ position:absolute; top:var(--m); left:var(--m); right:var(--m); display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; opacity:.7; }
 
   /* nav */
   header{ position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:40; width:min(460px,calc(100vw - 32px)); }
@@ -209,11 +204,6 @@
 </head>
 <body>
 
-  <div id="loader">
-    <div class="meta"><span>QuRes®</span><span>Loading, research console</span></div>
-    <div class="count"><span id="pct">0</span></div>
-  </div>
-
   <header id="header">
     <div class="nav-pill">
       <div class="nav-bar">
@@ -226,7 +216,7 @@
         <a class="nav-link" href="pages/pricing.html"><span class="idx">02</span><span class="t">Pricing</span><span class="arrow">↗</span></a>
         <a class="nav-link" href="pages/about.html"><span class="idx">03</span><span class="t">About</span><span class="arrow">↗</span></a>
         <a class="nav-link" href="pages/contact.html"><span class="idx">04</span><span class="t">Contact</span><span class="arrow">↗</span></a>
-        <div class="nav-cta"><a href="mailto:hello@qures-insights.com" id="navAsk">Contact us</a></div>
+        <div class="nav-cta"><a href="mailto:admin@quresinsights.com" id="navAsk">Contact us</a></div>
       </nav>
     </div>
   </header>
@@ -522,8 +512,7 @@
   introScreen();
 
   // chrome
-  const loader=document.getElementById('loader'), pct=document.getElementById('pct');
-  let n=0; const li=setInterval(()=>{ n+=Math.random()*16; if(n>=100){ n=100; clearInterval(li); setTimeout(()=>{ loader.classList.add('done'); kick(); },350);} pct.textContent=Math.floor(n); },85);
+  kick();
   const header=document.getElementById('header'), navBlur=document.getElementById('navBlur');
   document.getElementById('burger').onclick=()=>{ header.classList.toggle('open'); navBlur.classList.toggle('show',header.classList.contains('open')); };
   navBlur.onclick=()=>{ header.classList.remove('open'); navBlur.classList.remove('show'); };
